@@ -1,0 +1,123 @@
+<html>
+  <head>
+    <style>
+      #output div {
+        display: inline-block;
+        width: 25px;
+        height: 25px;
+        border: 1px solid black;
+      }
+      #download {
+        display: block;
+        margin-top: 20px;
+      }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.5.0-beta4/html2canvas.min.js"></script>
+
+  </head>
+  <body>
+    <input type="file" id="image-input" />
+    <div id="output"></div>
+    <button id="download">Download Mosaic</button>
+
+    <script>
+      const input = document.querySelector('#image-input');
+      const output = document.querySelector('#output');
+      const download =document.querySelector("#download");
+
+      download.addEventListener("click", function() {
+	    var canvas = document.querySelector("canvas");
+	    var link = document.createElement("a");
+	    link.href = canvas.toDataURL();
+	    link.download = "image.png";
+	    link.click();
+	  });
+
+      input.addEventListener('change', function() {
+        const reader = new FileReader();
+        reader.onload = function() {
+          const image = new Image();
+          image.src = reader.result;
+          image.onload = async function() {
+            // Generate the Rubik's cube mosaic output here
+            await updateOutput(image);
+          };
+        };
+        reader.readAsDataURL(input.files[0]);
+      });
+
+      async function updateOutput(image) {
+        const mosaic = await generateMosaic(image);
+        output.innerHTML = mosaic[0];
+        html2canvas(document.querySelector("#output")).then(canvas => {
+		    document.body.appendChild(canvas)
+
+        	document.querySelector("#output").style.display = 'none';
+		  });
+      }
+
+      function generateMosaic(image) {
+        const canvas = document.createElement('canvas');
+        canvas.width = image.width;
+        canvas.height = image.height;
+        const context = canvas.getContext('2d');
+        context.drawImage(image, 0, 0);
+        const data = context.getImageData(0, 0, canvas.width, canvas.height).data;
+
+        const viewportWidth = window.innerWidth;
+        let blockSize = 30; // The size of each Rubik's cube block in pixels
+        if (viewportWidth < 600) {
+          blockSize = 20;
+        } else if (viewportWidth < 1000) {
+          blockSize = 25;
+        }
+        const rows = Math.floor(canvas.height / blockSize);
+        const cols = Math.floor(canvas.width / blockSize);
+
+        let html = '';
+for (let i = 0; i < rows; i++) {
+  for (let j = 0; j < cols; j++) {
+    let r = 0, g = 0, b = 0, count = 0;
+    for (let x = 0; x < blockSize; x++) {
+      for (let y = 0; y < blockSize; y++) {
+        const pixelIndex = 4 * ((i * blockSize + x) * canvas.width + (j * blockSize + y));
+        r += data[pixelIndex];
+        g += data[pixelIndex + 1];
+        b += data[pixelIndex + 2];
+        count++;
+      }
+    }
+
+    let color;
+    const avg = Math.floor((r + g + b) / (3 * count));
+	    if (avg <= 85) {
+		color = 'rgb(255, 0, 0)';
+		} else if (avg <= 170) {
+		color = 'rgb(255, 255, 0)';
+		} else if (avg <= 255) {
+		color = 'rgb(0, 255, 0)';
+		} else if (avg <= 340) {
+		color = 'rgb(0, 255, 255)';
+		} else if (avg <= 425) {
+		color = 'rgb(0, 0, 255)';
+		} else if (avg <= 510) {
+		color = 'rgb(255, 0, 255)';
+		} else if (avg <= 595) {
+		color = 'rgb(0, 0, 0)';
+		} else {
+		color = 'rgb(255, 255, 255)';
+		}
+    html += `<div style="background-color: ${color};"></div>`;
+  }
+  html += '<br />';
+}
+
+
+        const dataURL = canvas.toDataURL();
+
+      	 
+        return [html, dataURL];
+      }
+    </script>
+  </body>
+</html>
